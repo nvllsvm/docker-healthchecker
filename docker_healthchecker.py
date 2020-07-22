@@ -4,10 +4,14 @@ import concurrent.futures
 import json
 import logging
 import subprocess
-
-LOGGER = logging.getLogger('docker-healthchecker')
+import sys
 
 version = '0.0.1'
+
+logging.basicConfig(
+    format='%(message)s',
+    level=logging.INFO,
+    stream=sys.stdout)
 
 
 def _inspect_containers(container_ids):
@@ -20,10 +24,12 @@ def _inspect_containers(container_ids):
 
 
 def _is_healthy(inspect_data):
+    logger = logging.getLogger(__name__)
+
     container_id = inspect_data['Id']
-    LOGGER.info('%s - checking', container_id)
     healthcheck = inspect_data['Config'].get('Healthcheck')
     if healthcheck:
+        logger.info('Checking: %s', container_id)
         hc_type = healthcheck['Test'][0]
         hc_args = healthcheck['Test'][1:]
         if hc_type == 'CMD-SHELL':
@@ -41,22 +47,20 @@ def _is_healthy(inspect_data):
         else:
             raise NotImplementedError(hc_type)
         healthy = not bool(result.returncode)
-        LOGGER.info(
-            '%s - %s',
+        logger.info(
+            '%s: %s',
+            'Healthy' if healthy else 'Unhealthy',
             container_id,
-            'healthy' if healthy else 'unhealthy'
         )
         return healthy
+    else:
+        logger.info('No health check: %s', container_id)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('container', nargs='+')
-    parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.basicConfig(level=logging.INFO)
 
     with concurrent.futures.ProcessPoolExecutor() as pool:
         futures = {
