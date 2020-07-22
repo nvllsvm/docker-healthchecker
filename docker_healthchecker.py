@@ -6,7 +6,7 @@ import logging
 import subprocess
 import sys
 
-version = '0.0.1'
+version = '0.0.2'
 
 logging.basicConfig(
     format='%(message)s',
