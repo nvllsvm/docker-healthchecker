@@ -67,10 +67,13 @@ def main():
             pool.submit(_is_healthy, container): container
             for container in _inspect_containers(args.container)
         }
-        for future in concurrent.futures.as_completed(futures):
-            result = future.result()
-            if result is False:
-                pool.submit(_is_healthy, futures[future])
+        while futures:
+            for future in concurrent.futures.as_completed(futures.keys()):
+                result = future.result()
+                container_id = futures.pop(future)
+                if result is False:
+                    future = pool.submit(_is_healthy, container_id)
+                    futures[future] = container_id
 
 
 if __name__ == '__main__':
