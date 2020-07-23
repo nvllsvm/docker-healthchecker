@@ -8,11 +8,6 @@ import sys
 
 version = '0.0.2'
 
-logging.basicConfig(
-    format='%(message)s',
-    level=logging.INFO,
-    stream=sys.stdout)
-
 
 def _inspect_containers(container_ids):
     result = subprocess.run(
@@ -60,7 +55,14 @@ def _is_healthy(inspect_data):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('container', nargs='+')
+    parser.add_argument('-q', '--quiet', action='store_true')
     args = parser.parse_args()
+
+    if not args.quiet:
+        logging.basicConfig(
+            format='%(message)s',
+            level=logging.INFO,
+            stream=sys.stdout)
 
     with concurrent.futures.ProcessPoolExecutor() as pool:
         futures = {
