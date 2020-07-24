@@ -75,6 +75,9 @@ def main():
     parser.add_argument('container', nargs='+')
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Suppress output')
+    parser.add_argument('-t', '--timeout', type=int,
+                        help=('Seconds to wait before failing. '
+                              'Waits indefinitely when not specified'))
     args = parser.parse_args()
 
     if not args.quiet:
@@ -83,7 +86,12 @@ def main():
             level=logging.INFO,
             stream=sys.stdout)
 
-    asyncio.run(_check_containers(args.container))
+    try:
+        asyncio.run(asyncio.wait_for(
+            _check_containers(args.container), timeout=args.timeout
+        ))
+    except asyncio.TimeoutError:
+        sys.exit(1)
 
 
 if __name__ == '__main__':
