@@ -64,6 +64,7 @@ async def _check_containers(containers):
     while pending:
         done, pending = await asyncio.wait(
             pending, return_when=asyncio.FIRST_COMPLETED)
+        pending = list(pending)
         for f in done:
             inspect_data, result = f.result()
             if result is False:
