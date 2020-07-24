@@ -8,11 +8,6 @@ import sys
 
 version = '0.0.4'
 
-logging.basicConfig(
-    format='%(message)s',
-    level=logging.INFO,
-    stream=sys.stdout)
-
 
 def _inspect_containers(container_ids):
     result = subprocess.run(
@@ -57,12 +52,20 @@ def _is_healthy(inspect_data):
         logger.info('No health check: %s', container_id)
 
 
+def _initializer():
+    logging.basicConfig(
+        format='%(message)s',
+        level=logging.INFO,
+        stream=sys.stdout)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('container', nargs='+')
     args = parser.parse_args()
 
-    with concurrent.futures.ProcessPoolExecutor() as pool:
+    with concurrent.futures.ProcessPoolExecutor(initializer=_initializer) \
+            as pool:
         futures = {
             pool.submit(_is_healthy, container): container
             for container in _inspect_containers(args.container)
