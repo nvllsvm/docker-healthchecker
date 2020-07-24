@@ -52,20 +52,23 @@ def _is_healthy(inspect_data):
         logger.info('No health check: %s', container_id)
 
 
-def _initializer():
-    logging.basicConfig(
-        format='%(message)s',
-        level=logging.INFO,
-        stream=sys.stdout)
+def _initializer(quiet):
+    if not quiet:
+        logging.basicConfig(
+            format='%(message)s',
+            level=logging.INFO,
+            stream=sys.stdout)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('container', nargs='+')
+    parser.add_argument('-q', '--quiet', default=False, action='store_true',
+                        help='Suppress output')
     args = parser.parse_args()
 
-    with concurrent.futures.ProcessPoolExecutor(initializer=_initializer) \
-            as pool:
+    with concurrent.futures.ProcessPoolExecutor(
+            initializer=_initializer, initargs=(args.quiet,)) as pool:
         futures = {
             pool.submit(_is_healthy, container): container
             for container in _inspect_containers(args.container)
