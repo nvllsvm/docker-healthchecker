@@ -6,7 +6,7 @@ import logging
 import subprocess
 import sys
 
-version = '0.0.4'
+version = '0.0.5'
 
 
 def _inspect_containers(container_ids):
