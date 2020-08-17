@@ -77,7 +77,8 @@ def main():
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Suppress output')
     parser.add_argument('-t', '--timeout', type=int,
-                        help=('Seconds to wait before failing. '
+                        metavar='SECONDS',
+                        help=('Time to wait before failing. '
                               'Waits indefinitely when not specified'))
     args = parser.parse_args()
 
