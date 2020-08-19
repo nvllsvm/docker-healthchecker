@@ -80,6 +80,7 @@ def main():
                         metavar='SECONDS',
                         help=('Time to wait before failing. '
                               'Waits indefinitely when not specified'))
+    parser.add_argument('--version', action='version', version=version)
     args = parser.parse_args()
 
     if not args.quiet:
