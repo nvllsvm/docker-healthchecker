@@ -37,7 +37,7 @@ async def _is_healthy(inspect_data):
             returncode = await process.wait()
         elif hc_type == 'CMD':
             process = await asyncio.create_subprocess_exec(
-                ['docker', 'exec', container_id, *hc_args],
+                'docker', 'exec', container_id, *hc_args,
                 stderr=subprocess.DEVNULL,
                 stdout=subprocess.DEVNULL
             )
