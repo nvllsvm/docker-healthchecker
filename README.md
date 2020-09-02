@@ -14,5 +14,5 @@ docker-healthchecker <container_id>
 
 ### Docker Compose
 ```
-docker-healthchecker $(docker-compose ps -aq)
+docker-compose ps -aq | docker-healthchecker
 ```
