@@ -73,7 +73,7 @@ async def _check_containers(containers):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('container', nargs='+')
+    parser.add_argument('container', nargs='*', default='')
     parser.add_argument('-q', '--quiet', default=False, action='store_true',
                         help='Suppress output')
     parser.add_argument('-t', '--timeout', type=int,
@@ -83,6 +83,15 @@ def main():
     parser.add_argument('--version', action='version', version=version)
     args = parser.parse_args()
 
+    containers = set()
+    if not sys.stdin.isatty():
+        containers.update(sys.stdin.read().splitlines())
+    containers.update(args.container)
+
+    if not containers:
+        parser.error('no containers specified')
+        parser.exit()
+
     if not args.quiet:
         logging.basicConfig(
             format='%(message)s',
@@ -91,7 +100,7 @@ def main():
 
     try:
         asyncio.run(asyncio.wait_for(
-            _check_containers(args.container), timeout=args.timeout
+            _check_containers(containers), timeout=args.timeout
         ))
     except asyncio.TimeoutError:
         sys.exit(1)
