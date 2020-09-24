@@ -22,9 +22,10 @@ async def _inspect_containers(container_ids):
 
 async def _is_healthy(inspect_data):
     container_id = inspect_data['Id']
+    container_name = inspect_data['Name']
     healthcheck = inspect_data['Config'].get('Healthcheck')
     if healthcheck:
-        _LOGGER.info('Checking: %s', container_id)
+        _LOGGER.info('Checking: %s (%s)', container_name, container_id)
         hc_type = healthcheck['Test'][0]
         hc_args = healthcheck['Test'][1:]
         if hc_type == 'CMD-SHELL':
@@ -46,13 +47,13 @@ async def _is_healthy(inspect_data):
             raise NotImplementedError(hc_type)
         healthy = not bool(returncode)
         _LOGGER.info(
-            '%s: %s',
+            '%s: %s (%s)',
             'Healthy' if healthy else 'Unhealthy',
-            container_id,
+            container_name, container_id,
         )
         return inspect_data, healthy
     else:
-        _LOGGER.info('No health check: %s', container_id)
+        _LOGGER.info('No health check: %s (%s)', container_name, container_id)
         return inspect_data, None
 
 
