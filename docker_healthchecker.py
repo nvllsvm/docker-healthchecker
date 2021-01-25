@@ -6,7 +6,7 @@ import logging
 import subprocess
 import sys
 
-version = '0.1.0'
+version = '0.2.0'
 
 _LOGGER = logging.getLogger('docker-healthchecker')
 
