@@ -28,23 +28,30 @@ async def _is_healthy(inspect_data):
         _LOGGER.info('Checking: %s (%s)', container_name, container_id)
         hc_type = healthcheck['Test'][0]
         hc_args = healthcheck['Test'][1:]
-        if hc_type == 'CMD-SHELL':
-            process = await asyncio.create_subprocess_exec(
-                'docker',
-                'exec', container_id, '/bin/sh', '-c', hc_args[0],
-                stderr=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL
-            )
+        try:
+            if hc_type == 'CMD-SHELL':
+                process = await asyncio.create_subprocess_exec(
+                    'docker',
+                    'exec', container_id, '/bin/sh', '-c', hc_args[0],
+                    stderr=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL
+                )
+            elif hc_type == 'CMD':
+                process = await asyncio.create_subprocess_exec(
+                    'docker', 'exec', container_id, *hc_args,
+                    stderr=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL
+                )
+            else:
+                raise NotImplementedError(hc_type)
             returncode = await process.wait()
-        elif hc_type == 'CMD':
-            process = await asyncio.create_subprocess_exec(
-                'docker', 'exec', container_id, *hc_args,
-                stderr=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL
-            )
-            returncode = await process.wait()
-        else:
-            raise NotImplementedError(hc_type)
+        except asyncio.CancelledError:
+            try:
+                process.kill()
+            except ProcessLookupError:
+                pass
+            await process.wait()
+            raise
         healthy = not bool(returncode)
         _LOGGER.info(
             '%s: %s (%s)',
@@ -57,19 +64,40 @@ async def _is_healthy(inspect_data):
         return inspect_data, None
 
 
-async def _check_containers(containers):
+async def _timeout(timeout):
+    await asyncio.sleep(timeout)
+    raise asyncio.TimeoutError
+
+
+async def _check_containers(containers, timeout=None):
     pending = [
         _is_healthy(container)
         for container in await _inspect_containers(containers)
     ]
+
+    if timeout:
+        pending.append(_timeout(timeout))
+
+    timedout = False
     while pending:
         done, pending = await asyncio.wait(
             pending, return_when=asyncio.FIRST_COMPLETED)
         pending = list(pending)
         for f in done:
-            inspect_data, result = f.result()
+            try:
+                inspect_data, result = f.result()
+            except asyncio.TimeoutError:
+                timedout = True
             if result is False:
                 pending.append(_is_healthy(inspect_data))
+        if timedout and pending:
+            for p in pending:
+                try:
+                    p.cancel()
+                    await p
+                except asyncio.CancelledError:
+                    pass
+            raise asyncio.TimeoutError
 
 
 def main():
@@ -100,10 +128,9 @@ def main():
             stream=sys.stdout)
 
     try:
-        asyncio.run(asyncio.wait_for(
-            _check_containers(containers), timeout=args.timeout
-        ))
+        asyncio.run(_check_containers(containers, args.timeout))
     except asyncio.TimeoutError:
+        _LOGGER.error('Timeout exceeded')
         sys.exit(1)
 
 
