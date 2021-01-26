@@ -82,6 +82,8 @@ async def _check_containers(containers, timeout=None):
 
     timedout = False
     while pending:
+        if timeout and len(pending) == 1:
+            break
         done, pending = await asyncio.wait(
             pending, return_when=asyncio.FIRST_COMPLETED)
         pending = list(pending)
