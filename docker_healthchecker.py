@@ -46,7 +46,7 @@ async def _is_healthy(inspect_data):
                 raise NotImplementedError(hc_type)
             returncode = await process.wait()
         except asyncio.CancelledError:
-            _LOGGER.warning('Timeout exceded: %s (%s)',
+            _LOGGER.warning('Timeout exceeded: %s (%s)',
                             container_name, container_id)
             try:
                 process.kill()
