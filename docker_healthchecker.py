@@ -3,7 +3,6 @@ import argparse
 import asyncio
 import json
 import logging
-import subprocess
 import sys
 
 version = '0.2.2'
@@ -14,7 +13,7 @@ _LOGGER = logging.getLogger('docker-healthchecker')
 async def _inspect_containers(container_ids):
     process = await asyncio.create_subprocess_exec(
         'docker', 'inspect', *container_ids,
-        stdout=subprocess.PIPE
+        stdout=asyncio.subprocess.PIPE
     )
     stdout, _ = await process.communicate()
     return json.loads(stdout.decode().strip())
@@ -33,14 +32,14 @@ async def _is_healthy(inspect_data):
                 process = await asyncio.create_subprocess_exec(
                     'docker',
                     'exec', container_id, '/bin/sh', '-c', hc_args[0],
-                    stderr=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL
+                    stderr=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.DEVNULL
                 )
             elif hc_type == 'CMD':
                 process = await asyncio.create_subprocess_exec(
                     'docker', 'exec', container_id, *hc_args,
-                    stderr=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL
+                    stderr=asyncio.subprocess.DEVNULL,
+                    stdout=asyncio.subprocess.DEVNULL
                 )
             else:
                 raise NotImplementedError(hc_type)
