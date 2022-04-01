@@ -72,9 +72,9 @@ async def _is_healthy(inspect_data):
             raise
         healthy = not bool(returncode)
         _LOGGER.info(
-            '%s: %s (%s)',
-            'Healthy' if healthy else 'Unhealthy',
+            '%s (%s) returncode %s (%s)',
             container_name, container_id,
+            returncode, 'healthy' if healthy else 'unhealthy',
         )
         return inspect_data, healthy
     else:
