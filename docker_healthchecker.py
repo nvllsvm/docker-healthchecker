@@ -92,9 +92,10 @@ async def _check_containers(containers, timeout=None):
                 inspect_data, result = f.result()
             except asyncio.TimeoutError:
                 timedout = True
-            if result is False:
-                pending.append(
-                    asyncio.ensure_future(_is_healthy(inspect_data)))
+            else:
+                if result is False:
+                    pending.append(
+                        asyncio.ensure_future(_is_healthy(inspect_data)))
         if timedout and pending:
             for p in pending:
                 try:
