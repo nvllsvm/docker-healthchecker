@@ -5,7 +5,7 @@ import json
 import logging
 import sys
 
-version = '0.2.2'
+version = '0.3.0'
 
 _LOGGER = logging.getLogger('docker-healthchecker')
 
