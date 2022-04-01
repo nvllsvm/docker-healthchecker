@@ -32,17 +32,34 @@ async def _is_healthy(inspect_data):
                 process = await asyncio.create_subprocess_exec(
                     'docker',
                     'exec', container_id, '/bin/sh', '-c', hc_args[0],
-                    stderr=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.DEVNULL
+                    stderr=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE
                 )
             elif hc_type == 'CMD':
                 process = await asyncio.create_subprocess_exec(
                     'docker', 'exec', container_id, *hc_args,
-                    stderr=asyncio.subprocess.DEVNULL,
-                    stdout=asyncio.subprocess.DEVNULL
+                    stderr=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE
                 )
             else:
                 raise NotImplementedError(hc_type)
+            pending = [
+                asyncio.create_task(process.stdout.readline(), name='stdout'),
+                asyncio.create_task(process.stderr.readline(), name='stderr'),
+            ]
+            while pending:
+                done, pending = await asyncio.wait(
+                    pending, return_when=asyncio.FIRST_COMPLETED)
+                for task in done:
+                    name = task.get_name()
+                    result = task.result()
+                    if result:
+                        _LOGGER.debug(
+                            '%s (%s) %s %r',
+                            container_name, container_id, name, result)
+                        pending.add(
+                            asyncio.create_task(
+                                getattr(process, name).readline(), name=name))
             returncode = await process.wait()
         except asyncio.CancelledError:
             _LOGGER.warning('Timeout exceeded: %s (%s)',
@@ -108,8 +125,10 @@ async def _check_containers(containers, timeout=None):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('container', nargs='*', default='')
-    parser.add_argument('-q', '--quiet', default=False, action='store_true',
-                        help='Suppress output')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-q', '--quiet', default=False, action='store_true',
+                       help='Suppress output')
+    group.add_argument('--verbose', action='store_true', help='Verbose output')
     parser.add_argument('-t', '--timeout', type=int,
                         metavar='SECONDS',
                         help=('Time to wait before failing. '
@@ -129,7 +148,7 @@ def main():
     if not args.quiet:
         logging.basicConfig(
             format='%(message)s',
-            level=logging.INFO,
+            level=logging.DEBUG if args.verbose else logging.INFO,
             stream=sys.stdout)
 
     try:
